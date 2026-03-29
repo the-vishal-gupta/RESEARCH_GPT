@@ -10,6 +10,7 @@ export interface Paper {
   pdfUrl?: string;
   doi?: string;
   publisher?: string;
+  isPaywalled?: boolean;
 }
 
 export interface LabsResult extends Paper {

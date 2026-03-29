@@ -1,5 +1,46 @@
 // Query processing utilities
 
+// Detect if query is asking for sorting/filtering
+export const detectQueryIntent = (query: string): {
+  sortBy?: 'citations' | 'year' | 'relevance';
+  searchTerms: string;
+} => {
+  const lowerQuery = query.toLowerCase();
+  
+  // Detect citation-based queries
+  if (lowerQuery.match(/most cited|highly cited|top cited|best cited|popular/)) {
+    // Remove sorting phrases and extract topic
+    const searchTerms = query
+      .replace(/most cited|highly cited|top cited|best cited|popular/gi, '')
+      .replace(/papers?|articles?|research/gi, '')
+      .trim();
+    
+    return {
+      sortBy: 'citations',
+      searchTerms: searchTerms || 'deep learning' // Default to broader topic
+    };
+  }
+  
+  // Detect recent/latest queries
+  if (lowerQuery.match(/recent|latest|newest|new|2024|2023/)) {
+    const searchTerms = query
+      .replace(/recent|latest|newest|new/gi, '')
+      .replace(/papers?|articles?|research/gi, '')
+      .replace(/\d{4}/g, '') // Remove years
+      .trim();
+    
+    return {
+      sortBy: 'year',
+      searchTerms: searchTerms || 'machine learning'
+    };
+  }
+  
+  return {
+    sortBy: 'relevance',
+    searchTerms: query
+  };
+};
+
 // Remove common filler words and extract meaningful search terms
 export const processSearchQuery = (query: string): string => {
   
@@ -14,9 +55,19 @@ export const processSearchQuery = (query: string): string => {
     /^i need\s+/i,
     /^looking for\s+/i,
     /^can you (find|get|show|give)\s+/i,
+    /^what (is|are)\s+/i,
+    /^tell me about\s+/i,
     /\s+papers?$/i,
     /\s+articles?$/i,
     /\s+research$/i,
+    /most cited/gi,
+    /highly cited/gi,
+    /top cited/gi,
+    /best cited/gi,
+    /popular/gi,
+    /recent/gi,
+    /latest/gi,
+    /newest/gi,
   ];
   
   let processedQuery = query;

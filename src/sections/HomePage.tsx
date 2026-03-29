@@ -36,7 +36,7 @@ export function HomePage({ onSearch, onNavigate }: HomePageProps) {
         </div>
 
         {/* Quick Actions */}
-        <div className="flex flex-wrap justify-center gap-3 mb-12 animate-slide-up stagger-2">
+        <div className="flex flex-wrap justify-center gap-3 mb-12 animate-slide-up stagger-2 relative z-0">
           <Button
             variant="outline"
             onClick={() => onNavigate('labs')}
@@ -155,6 +155,62 @@ export function HomePage({ onSearch, onNavigate }: HomePageProps) {
               <p className="text-3xl font-medium text-[#4285f4]">20+</p>
               <p className="text-sm text-[#5f6368]">Years of data</p>
             </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Contact Us Section */}
+      <div className="bg-[#f8f9fa] py-16 px-4">
+        <div className="max-w-2xl mx-auto">
+          <h2 className="text-2xl font-medium text-[#202124] text-center mb-2">
+            Contact Us
+          </h2>
+          <p className="text-sm text-[#5f6368] text-center mb-8">
+            Have questions or feedback? We'd love to hear from you.
+          </p>
+          
+          <div className="bg-white p-6 rounded-xl shadow-sm">
+            <form className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-[#202124] mb-2">
+                  Name
+                </label>
+                <input
+                  type="text"
+                  className="w-full px-4 py-2 border border-[#dadce0] rounded-lg focus:outline-none focus:border-[#4285f4] focus:ring-1 focus:ring-[#4285f4]"
+                  placeholder="Your name"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-[#202124] mb-2">
+                  Email
+                </label>
+                <input
+                  type="email"
+                  className="w-full px-4 py-2 border border-[#dadce0] rounded-lg focus:outline-none focus:border-[#4285f4] focus:ring-1 focus:ring-[#4285f4]"
+                  placeholder="your.email@example.com"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-[#202124] mb-2">
+                  Message
+                </label>
+                <textarea
+                  rows={4}
+                  className="w-full px-4 py-2 border border-[#dadce0] rounded-lg focus:outline-none focus:border-[#4285f4] focus:ring-1 focus:ring-[#4285f4] resize-none"
+                  placeholder="Tell us what's on your mind..."
+                />
+              </div>
+              
+              <Button
+                type="submit"
+                className="w-full bg-[#4285f4] hover:bg-[#3367d6] text-white rounded-lg h-10"
+              >
+                Send Message
+              </Button>
+            </form>
           </div>
         </div>
       </div>

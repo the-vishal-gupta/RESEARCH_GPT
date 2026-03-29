@@ -32,6 +32,7 @@ export const PaperCard = memo(function PaperCard({ paper, isLabsResult = false, 
 
   // Determine paper access type
   const getAccessType = (paper: Paper | LabsResult): 'free' | 'paywalled' => {
+    if (paper.isPaywalled) return 'paywalled';
     if (paper.pdfUrl) return 'free';
     return 'paywalled';
   };
@@ -117,8 +118,8 @@ export const PaperCard = memo(function PaperCard({ paper, isLabsResult = false, 
                   ✓ FREE PDF
                 </span>
               ) : (
-                <span className="inline-block px-2 py-1 rounded-full bg-yellow-100 text-yellow-800 text-xs font-semibold">
-                  PAYWALLED
+                <span className="inline-block px-2 py-1 rounded-full bg-orange-100 text-orange-800 text-xs font-semibold">
+                  🔒 NOT FREE
                 </span>
               )}
               {paper.year && (

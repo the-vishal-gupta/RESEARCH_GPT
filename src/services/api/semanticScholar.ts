@@ -2,7 +2,7 @@ import axios from 'axios';
 import type { Paper } from '@/types';
 import type { APIResponse, SearchOptions } from './types';
 
-const SEMANTIC_SCHOLAR_API_URL = 'https://api.semanticscholar.org/graph/v1/paper/search';
+const SEMANTIC_SCHOLAR_API_URL = import.meta.env.DEV ? '/api/semantic' : 'https://api.semanticscholar.org/graph/v1/paper/search';
 
 interface SemanticScholarPaper {
   paperId: string;
@@ -25,9 +25,12 @@ export const searchSemanticScholar = async (options: SearchOptions): Promise<API
   try {
     const { query, maxResults = 10 } = options;
     
+    // Increase results to get better coverage
+    const fetchCount = Math.min(maxResults * 2, 50);
+    
     const params = new URLSearchParams({
       query,
-      limit: maxResults.toString(),
+      limit: fetchCount.toString(),
       fields: 'paperId,title,abstract,year,authors,citationCount,venue,externalIds,openAccessPdf'
     });
     
@@ -59,6 +62,8 @@ export const searchSemanticScholar = async (options: SearchOptions): Promise<API
         }
       });
     }
+    
+    console.log('Semantic Scholar API:', { query, requested: fetchCount, found: papers.length, withCitations: papers.filter(p => p.citations > 0).length });
     
     return {
       papers,

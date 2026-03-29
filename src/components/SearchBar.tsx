@@ -59,7 +59,7 @@ export function SearchBar({
   const inputTextClass = size === 'large' ? 'text-lg' : 'text-base';
 
   return (
-    <div ref={containerRef} className="relative w-full">
+    <div ref={containerRef} className="relative w-full z-[100]">
       <form onSubmit={handleSubmit}>
         <div
           className={`search-bar flex items-center ${heightClass} px-4 bg-white ${
@@ -125,7 +125,7 @@ export function SearchBar({
 
       {/* Suggestions Dropdown */}
       {showSuggestions && (
-        <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-lg shadow-lg border border-[#dadce0] overflow-hidden z-50 animate-fade-in">
+        <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-lg shadow-lg border border-[#dadce0] overflow-hidden z-[9999] animate-fade-in">
           <div className="p-3">
             <p className="text-xs font-medium text-[#5f6368] uppercase tracking-wide mb-2">
               Try asking Scholar Labs

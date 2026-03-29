@@ -2,7 +2,7 @@ import axios from 'axios';
 import type { Paper } from '@/types';
 import type { APIResponse, SearchOptions } from './types';
 
-const CORE_API_URL = 'https://api.core.ac.uk/v3/search/works';
+const CORE_API_URL = import.meta.env.DEV ? '/api/core' : 'https://api.core.ac.uk/v3/search/works';
 
 // Get API key from environment variable
 const CORE_API_KEY = import.meta.env.VITE_CORE_API_KEY || '';

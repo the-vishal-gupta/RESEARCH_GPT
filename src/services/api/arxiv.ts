@@ -3,7 +3,7 @@ import type { Paper } from '@/types';
 import type { APIResponse, SearchOptions } from './types';
 import { filterPapersByYear } from '@/utils/queryProcessor';
 
-const ARXIV_API_URL = 'https://export.arxiv.org/api/query';
+const ARXIV_API_URL = import.meta.env.DEV ? '/api/arxiv' : 'https://export.arxiv.org/api/query';
 const DEBUG = import.meta.env.DEV;
 
 // Parse arXiv XML response
@@ -87,10 +87,13 @@ export const searchArxiv = async (options: SearchOptions): Promise<APIResponse> 
   try {
     const { query, maxResults = 10 } = options;
     
+    // Increase results to get better coverage for citation sorting
+    const fetchCount = Math.min(maxResults * 2, 50);
+    
     const params = new URLSearchParams({
       search_query: `all:${query}`,
       start: '0',
-      max_results: maxResults.toString(),
+      max_results: fetchCount.toString(),
       sortBy: 'relevance',
       sortOrder: 'descending'
     });
