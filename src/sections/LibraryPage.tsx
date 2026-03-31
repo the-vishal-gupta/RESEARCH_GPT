@@ -1,6 +1,5 @@
-import { useState } from 'react';
-import { savedPapers } from '@/data/mockPapers';
-import { Calendar, Tag, Trash2, Download, FolderOpen, Plus, Search } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Calendar, Tag, Trash2, Download, FolderOpen, Plus, Search, Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -18,60 +17,107 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { toast } from 'sonner';
-import type { SavedPaper } from '@/types';
+import { useAuth } from '@/context/AuthContext';
+import { libraryService, type SavedPaper } from '@/services/libraryService';
 
 export function LibraryPage() {
-  const [papers, setPapers] = useState<SavedPaper[]>(savedPapers);
+  const { currentUser } = useAuth();
+  const [papers, setPapers] = useState<SavedPaper[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedLabel, setSelectedLabel] = useState<string | null>(null);
-  const [newLabelDialogOpen, setNewLabelDialogOpen] = useState(false);
-  const [newLabelName, setNewLabelName] = useState('');
+  const [selectedTag, setSelectedTag] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Get all unique labels
-  const allLabels = Array.from(
-    new Set(papers.flatMap(p => p.labels))
+  // Load papers from library
+  useEffect(() => {
+    if (currentUser) {
+      const savedPapers = libraryService.getSavedPapers(currentUser.id);
+      setPapers(savedPapers);
+    }
+    setIsLoading(false);
+  }, [currentUser]);
+
+  // Get all unique tags
+  const allTags = Array.from(
+    new Set(papers.flatMap(p => p.tags))
   );
 
   // Filter papers
   const filteredPapers = papers.filter(paper => {
-    const matchesSearch = 
+    const matchesSearch =
       paper.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       paper.authors.some(a => a.toLowerCase().includes(searchQuery.toLowerCase()));
-    const matchesLabel = !selectedLabel || paper.labels.includes(selectedLabel);
-    return matchesSearch && matchesLabel;
+    const matchesTag = !selectedTag || paper.tags.includes(selectedTag);
+    return matchesSearch && matchesTag;
   });
 
   const handleRemovePaper = (paperId: string) => {
-    setPapers(prev => prev.filter(p => p.id !== paperId));
-    toast.success('Paper removed from library');
-  };
-
-  const handleAddLabel = (paperId: string, label: string) => {
-    setPapers(prev => prev.map(p => 
-      p.id === paperId && !p.labels.includes(label)
-        ? { ...p, labels: [...p.labels, label] }
-        : p
-    ));
-    toast.success(`Added label "${label}"`);
-  };
-
-  const handleCreateLabel = () => {
-    if (newLabelName.trim()) {
-      setNewLabelDialogOpen(false);
-      setNewLabelName('');
-      toast.success(`Created label "${newLabelName}"`);
+    if (!currentUser) return;
+    try {
+      libraryService.removePaper(currentUser.id, paperId);
+      setPapers(prev => prev.filter(p => p.id !== paperId));
+      toast.success('Paper removed from library');
+    } catch (err) {
+      toast.error('Failed to remove paper');
     }
   };
 
-  const labelColors: Record<string, string> = {
-    'Transformers': 'bg-blue-100 text-blue-800',
-    'NLP': 'bg-green-100 text-green-800',
-    'Must Read': 'bg-red-100 text-red-800',
-    'BERT': 'bg-purple-100 text-purple-800',
-    'Pre-training': 'bg-yellow-100 text-yellow-800',
-    'Healthcare': 'bg-pink-100 text-pink-800',
-    'ML Applications': 'bg-indigo-100 text-indigo-800',
+  const handleAddTag = (paperId: string, tag: string) => {
+    if (!currentUser) return;
+    try {
+      libraryService.addTags(currentUser.id, paperId, [tag]);
+      setPapers(prev => prev.map(p =>
+        p.id === paperId && !p.tags.includes(tag)
+          ? { ...p, tags: [...p.tags, tag] }
+          : p
+      ));
+      toast.success(`Added tag "${tag}"`);
+    } catch (err) {
+      toast.error('Failed to add tag');
+    }
   };
+
+  const handleRemoveTag = (paperId: string, tag: string) => {
+    if (!currentUser) return;
+    try {
+      libraryService.removeTags(currentUser.id, paperId, [tag]);
+      setPapers(prev => prev.map(p =>
+        p.id === paperId
+          ? { ...p, tags: p.tags.filter(t => t !== tag) }
+          : p
+      ));
+    } catch (err) {
+      toast.error('Failed to remove tag');
+    }
+  };
+
+  const handleSetRating = (paperId: string, rating: number) => {
+    if (!currentUser) return;
+    try {
+      libraryService.setRating(currentUser.id, paperId, rating);
+      setPapers(prev => prev.map(p =>
+        p.id === paperId ? { ...p, rating } : p
+      ));
+      toast.success(`Rated ${rating} stars`);
+    } catch (err) {
+      toast.error('Failed to set rating');
+    }
+  };
+
+  const tagColors: Record<string, string> = {
+    'Important': 'bg-red-100 text-red-800',
+    'ToRead': 'bg-blue-100 text-blue-800',
+    'Reference': 'bg-green-100 text-green-800',
+    'Methodology': 'bg-purple-100 text-purple-800',
+    'Results': 'bg-yellow-100 text-yellow-800',
+  };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-[calc(100vh-64px)] bg-[#f8f9fa] flex items-center justify-center">
+        <div className="text-[#5f6368]">Loading library...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-[calc(100vh-64px)] bg-[#f8f9fa]">
@@ -85,39 +131,6 @@ export function LibraryPage() {
                 {papers.length} saved papers
               </p>
             </div>
-            <div className="flex items-center gap-2">
-              <Dialog open={newLabelDialogOpen} onOpenChange={setNewLabelDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button variant="outline">
-                    <Plus className="w-4 h-4 mr-2" />
-                    New Label
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Create New Label</DialogTitle>
-                  </DialogHeader>
-                  <div className="mt-4">
-                    <Input
-                      value={newLabelName}
-                      onChange={(e) => setNewLabelName(e.target.value)}
-                      placeholder="Label name"
-                      onKeyDown={(e) => e.key === 'Enter' && handleCreateLabel()}
-                    />
-                    <Button 
-                      className="w-full mt-4 bg-[#4285f4]"
-                      onClick={handleCreateLabel}
-                    >
-                      Create
-                    </Button>
-                  </div>
-                </DialogContent>
-              </Dialog>
-              <Button className="bg-[#4285f4]">
-                <Download className="w-4 h-4 mr-2" />
-                Export
-              </Button>
-            </div>
           </div>
         </div>
       </div>
@@ -125,17 +138,17 @@ export function LibraryPage() {
       {/* Content */}
       <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <div className="flex flex-col lg:flex-row gap-6">
-          {/* Sidebar - Labels */}
+          {/* Sidebar - Tags */}
           <div className="w-full lg:w-64 flex-shrink-0">
-            <div className="bg-white rounded-xl border border-[#dadce0] p-4">
+            <div className="bg-white rounded-xl border border-[#dadce0] p-4 sticky top-20">
               <h3 className="text-sm font-medium text-[#5f6368] uppercase tracking-wide mb-3">
-                Labels
+                Tags
               </h3>
-              
+
               <button
-                onClick={() => setSelectedLabel(null)}
+                onClick={() => setSelectedTag(null)}
                 className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors ${
-                  !selectedLabel ? 'bg-[#f0f7ff] text-[#4285f4]' : 'text-[#5f6368] hover:bg-[#f8f9fa]'
+                  !selectedTag ? 'bg-[#f0f7ff] text-[#4285f4]' : 'text-[#5f6368] hover:bg-[#f8f9fa]'
                 }`}
               >
                 <FolderOpen className="w-4 h-4" />
@@ -146,18 +159,18 @@ export function LibraryPage() {
               </button>
 
               <div className="mt-2 space-y-1">
-                {allLabels.map((label) => (
+                {allTags.map((tag) => (
                   <button
-                    key={label}
-                    onClick={() => setSelectedLabel(label === selectedLabel ? null : label)}
+                    key={tag}
+                    onClick={() => setSelectedTag(tag === selectedTag ? null : tag)}
                     className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors ${
-                      selectedLabel === label ? 'bg-[#f0f7ff] text-[#4285f4]' : 'text-[#5f6368] hover:bg-[#f8f9fa]'
+                      selectedTag === tag ? 'bg-[#f0f7ff] text-[#4285f4]' : 'text-[#5f6368] hover:bg-[#f8f9fa]'
                     }`}
                   >
                     <Tag className="w-4 h-4" />
-                    {label}
+                    {tag}
                     <span className="ml-auto text-xs bg-[#e8eaed] px-2 py-0.5 rounded-full">
-                      {papers.filter(p => p.labels.includes(label)).length}
+                      {papers.filter(p => p.tags.includes(tag)).length}
                     </span>
                   </button>
                 ))}
@@ -188,15 +201,15 @@ export function LibraryPage() {
                   No papers found
                 </h3>
                 <p className="text-sm text-[#5f6368]">
-                  {searchQuery 
-                    ? 'Try a different search term' 
+                  {searchQuery
+                    ? 'Try a different search term'
                     : 'Start saving papers to build your library'}
                 </p>
               </div>
             ) : (
               <div className="space-y-4">
                 {filteredPapers.map((paper) => (
-                  <div 
+                  <div
                     key={paper.id}
                     className="bg-white rounded-xl border border-[#dadce0] p-5 hover:shadow-md transition-shadow"
                   >
@@ -217,15 +230,35 @@ export function LibraryPage() {
                           <span className="italic">{paper.publication}</span>, {paper.year}
                         </p>
 
-                        {/* Labels */}
-                        <div className="flex flex-wrap gap-2 mb-3">
-                          {paper.labels.map((label) => (
-                            <Badge 
-                              key={label}
-                              variant="secondary"
-                              className={labelColors[label] || 'bg-gray-100 text-gray-800'}
+                        {/* Rating */}
+                        <div className="flex items-center gap-2 mb-3">
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <button
+                              key={star}
+                              onClick={() => handleSetRating(paper.id, star)}
+                              className="transition-colors"
                             >
-                              {label}
+                              <Star
+                                className={`w-5 h-5 ${
+                                  star <= paper.rating
+                                    ? 'fill-yellow-400 text-yellow-400'
+                                    : 'text-[#dadce0]'
+                                }`}
+                              />
+                            </button>
+                          ))}
+                        </div>
+
+                        {/* Tags */}
+                        <div className="flex flex-wrap gap-2 mb-3">
+                          {paper.tags.map((tag) => (
+                            <Badge
+                              key={tag}
+                              variant="secondary"
+                              className={`${tagColors[tag] || 'bg-gray-100 text-gray-800'} cursor-pointer`}
+                              onClick={() => handleRemoveTag(paper.id, tag)}
+                            >
+                              {tag} ✕
                             </Badge>
                           ))}
                           <DropdownMenu>
@@ -235,15 +268,21 @@ export function LibraryPage() {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent>
-                              {allLabels.filter(l => !paper.labels.includes(l)).map((label) => (
-                                <DropdownMenuItem 
-                                  key={label}
-                                  onClick={() => handleAddLabel(paper.id, label)}
+                              {allTags.filter(t => !paper.tags.includes(t)).map((tag) => (
+                                <DropdownMenuItem
+                                  key={tag}
+                                  onClick={() => handleAddTag(paper.id, tag)}
                                 >
                                   <Tag className="w-4 h-4 mr-2" />
-                                  {label}
+                                  {tag}
                                 </DropdownMenuItem>
                               ))}
+                              <DropdownMenuTrigger asChild>
+                                <DropdownMenuItem>
+                                  <Plus className="w-4 h-4 mr-2" />
+                                  Add new tag
+                                </DropdownMenuItem>
+                              </DropdownMenuTrigger>
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </div>
@@ -252,10 +291,7 @@ export function LibraryPage() {
                         <div className="flex items-center gap-4 text-sm text-[#5f6368]">
                           <span className="flex items-center gap-1">
                             <Calendar className="w-4 h-4" />
-                            Saved {paper.savedAt.toLocaleDateString()}
-                          </span>
-                          <span className="gs-green">
-                            Cited by {paper.citations.toLocaleString()}
+                            Saved {new Date(paper.savedAt).toLocaleDateString()}
                           </span>
                         </div>
                       </div>
@@ -270,9 +306,15 @@ export function LibraryPage() {
                         >
                           <Trash2 className="w-5 h-5" />
                         </Button>
-                        <Button variant="ghost" size="icon">
-                          <Download className="w-5 h-5" />
-                        </Button>
+                        {paper.pdfUrl && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => window.open(paper.pdfUrl, '_blank')}
+                          >
+                            <Download className="w-5 h-5" />
+                          </Button>
+                        )}
                       </div>
                     </div>
                   </div>

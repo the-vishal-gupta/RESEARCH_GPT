@@ -59,15 +59,15 @@ export function SearchBar({
   const inputTextClass = size === 'large' ? 'text-lg' : 'text-base';
 
   return (
-    <div ref={containerRef} className="relative w-full z-[100]">
+    <div ref={containerRef} className="relative w-full z-50">
       <form onSubmit={handleSubmit}>
         <div
-          className={`search-bar flex items-center ${heightClass} px-4 bg-white ${
-            isFocused ? 'border-[#4285f4]' : 'border-[#dadce0]'
+          className={`search-bar flex items-center ${heightClass} px-2 sm:px-4 bg-white border rounded-lg ${
+            isFocused ? 'border-[#4285f4] shadow-md' : 'border-[#dadce0]'
           }`}
         >
           <Search className={`w-5 h-5 text-[#5f6368] flex-shrink-0 ${size === 'large' ? 'w-6 h-6' : ''}`} />
-          
+
           <input
             ref={inputRef}
             type="text"
@@ -79,42 +79,45 @@ export function SearchBar({
             }}
             onBlur={() => setIsFocused(false)}
             placeholder={placeholder}
-            className={`flex-1 mx-4 ${inputTextClass} bg-transparent border-none outline-none text-[#202124] placeholder:text-[#9aa0a6]`}
+            className={`flex-1 mx-2 sm:mx-4 ${inputTextClass} bg-transparent border-none outline-none text-[#202124] placeholder:text-[#9aa0a6] text-sm sm:text-base`}
           />
 
           {query && (
             <button
               type="button"
               onClick={handleClear}
-              className="p-1 rounded-full hover:bg-[#f1f3f4] transition-colors"
+              className="p-1 rounded-full hover:bg-[#f1f3f4] transition-colors flex-shrink-0"
             >
-              <X className="w-5 h-5 text-[#5f6368]" />
+              <X className="w-4 h-4 sm:w-5 sm:h-5 text-[#5f6368]" />
             </button>
           )}
 
+          {/* Mic button - hidden on mobile */}
           <button
             type="button"
-            className="p-2 ml-2 rounded-full hover:bg-[#f1f3f4] transition-colors"
+            className="p-1 sm:p-2 ml-1 sm:ml-2 rounded-full hover:bg-[#f1f3f4] transition-colors hidden sm:block flex-shrink-0"
           >
-            <Mic className="w-5 h-5 text-[#4285f4]" />
+            <Mic className="w-4 h-4 sm:w-5 sm:h-5 text-[#4285f4]" />
           </button>
 
+          {/* Search button - icon only on mobile, full text on desktop */}
           <Button
             type="submit"
-            className={`ml-3 bg-[#4285f4] hover:bg-[#3367d6] text-white rounded-full px-6 ${
-              size === 'large' ? 'h-10 text-base' : 'h-9'
-            }`}
+            className={`ml-1 sm:ml-3 bg-[#4285f4] hover:bg-[#3367d6] text-white rounded-full ${
+              size === 'large' ? 'h-10 px-4 sm:px-6' : 'h-8 px-2 sm:px-4'
+            } flex-shrink-0`}
           >
-            <Search className="w-4 h-4 mr-2" />
-            Search
+            <Search className={`w-4 h-4 ${size === 'large' ? 'sm:mr-2' : 'sm:mr-2'}`} />
+            <span className="hidden sm:inline ml-0">Search</span>
           </Button>
 
+          {/* Labs button - hidden on mobile */}
           {showLabsButton && (
             <Button
               type="button"
               onClick={onLabsClick}
               variant="outline"
-              className="ml-3 border-[#4285f4] text-[#4285f4] hover:bg-[#f0f7ff] rounded-full px-4"
+              className="hidden md:flex ml-3 border-[#4285f4] text-[#4285f4] hover:bg-[#f0f7ff] rounded-full px-4 flex-shrink-0"
             >
               <Sparkles className="w-4 h-4 mr-2" />
               Labs
@@ -125,8 +128,8 @@ export function SearchBar({
 
       {/* Suggestions Dropdown */}
       {showSuggestions && (
-        <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-lg shadow-lg border border-[#dadce0] overflow-hidden z-[9999] animate-fade-in">
-          <div className="p-3">
+        <div className="absolute top-full left-0 right-0 mt-1 bg-white rounded-lg shadow-lg border border-[#dadce0] overflow-hidden z-50 animate-fade-in max-h-80 overflow-y-auto">
+          <div className="p-2 sm:p-3">
             <p className="text-xs font-medium text-[#5f6368] uppercase tracking-wide mb-2">
               Try asking Scholar Labs
             </p>
@@ -134,10 +137,10 @@ export function SearchBar({
               <button
                 key={index}
                 onClick={() => handleSuggestionClick(question)}
-                className="w-full text-left px-3 py-2 text-sm text-[#202124] hover:bg-[#f8f9fa] rounded-md transition-colors flex items-center gap-2"
+                className="w-full text-left px-2 sm:px-3 py-2 text-xs sm:text-sm text-[#202124] hover:bg-[#f8f9fa] rounded-md transition-colors flex items-center gap-2"
               >
-                <Sparkles className="w-4 h-4 text-[#4285f4]" />
-                {question}
+                <Sparkles className="w-3 h-3 sm:w-4 sm:h-4 text-[#4285f4] flex-shrink-0" />
+                <span className="truncate">{question}</span>
               </button>
             ))}
           </div>

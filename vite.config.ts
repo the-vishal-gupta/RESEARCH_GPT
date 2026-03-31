@@ -14,20 +14,9 @@ export default defineConfig({
   },
   server: {
     proxy: {
-      '/api/arxiv': {
-        target: 'https://export.arxiv.org',
+      '/api': {
+        target: 'http://localhost:3001',
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api\/arxiv/, '/api/query'),
-      },
-      '/api/semantic': {
-        target: 'https://api.semanticscholar.org',
-        changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api\/semantic/, '/graph/v1/paper/search'),
-      },
-      '/api/core': {
-        target: 'https://api.core.ac.uk',
-        changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api\/core/, '/v3/search/works'),
       },
     },
   },

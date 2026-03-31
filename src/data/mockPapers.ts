@@ -29,14 +29,15 @@ export const sampleResearchQuestions = [
 export const getPapersByQuery = async (query: string): Promise<Paper[]> => {
   try {
     const response = await searchAllAPIs({ query, maxResults: 20 });
-    const papersWithPdf = response.papers.filter(paper => paper.pdfUrl);
-    
-    console.log(`API results: ${response.papers.length} total, ${papersWithPdf.length} with PDFs`);
-    
-    // Return API results (even if 0) - don't fallback to irrelevant local papers
-    return papersWithPdf;
+
+    // Papers are already filtered for PDFs in aggregator.ts
+    // Return all papers from API
+    console.log(`✅ API results: ${response.papers.length} papers returned`);
+
+    // Return API results directly - no additional filtering
+    return response.papers;
   } catch (error) {
-    console.error('Error fetching papers:', error);
+    console.error('❌ Error fetching papers:', error);
     return [];
   }
 };
@@ -44,16 +45,16 @@ export const getPapersByQuery = async (query: string): Promise<Paper[]> => {
 export const getLabsResultsByQuery = async (query: string): Promise<LabsResult[]> => {
   try {
     const response = await searchAllAPIs({ query, maxResults: 20 });
-    const papersWithPdf = response.papers.filter(paper => paper.pdfUrl);
-    
-    console.log(`Labs API results: ${response.papers.length} total, ${papersWithPdf.length} with PDFs`);
-    
-    if (papersWithPdf.length === 0) {
-      console.warn('No papers found for query:', query);
+
+    // Papers are already filtered for PDFs in aggregator.ts
+    console.log(`✅ Labs API results: ${response.papers.length} papers returned`);
+
+    if (response.papers.length === 0) {
+      console.warn('⚠️ No papers found for query:', query);
       return [];
     }
-    
-    return papersWithPdf.slice(0, 10).map(paper => ({
+
+    return response.papers.slice(0, 10).map(paper => ({
       ...paper,
       aiSummary: `This paper addresses your question about "${query}" by examining ${paper.title.toLowerCase().slice(0, 100)}...`,
       relevancePoints: [
@@ -63,7 +64,7 @@ export const getLabsResultsByQuery = async (query: string): Promise<LabsResult[]
       ]
     }));
   } catch (error) {
-    console.error('Error fetching labs results:', error);
+    console.error('❌ Error fetching labs results:', error);
     return [];
   }
 };

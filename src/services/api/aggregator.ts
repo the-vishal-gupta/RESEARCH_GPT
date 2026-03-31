@@ -58,16 +58,48 @@ const deduplicatePapers = (papers: Paper[]): Paper[] => {
   return Array.from(uniquePapersMap.values());
 };
 
+// Fast regex-based query intent detection (no LLM needed)
+const detectQueryIntentFast = (query: string): 'citations' | 'year' | 'relevance' => {
+  const lowerQuery = query.toLowerCase();
+
+  if (lowerQuery.match(/most cited|highly cited|top cited|best cited|popular|famous/i)) {
+    return 'citations';
+  }
+
+  if (lowerQuery.match(/recent|latest|newest|new|2024|2023|2022|this year|last year/i)) {
+    return 'year';
+  }
+
+  return 'relevance';
+};
+
+// Fast regex-based search term extraction
+const extractSearchTermsFast = (query: string): string => {
+  return query
+    .replace(/most cited|highly cited|top cited|best cited|popular|famous/gi, '')
+    .replace(/recent|latest|newest|new|this year|last year/gi, '')
+    .replace(/papers?|articles?|research|on|about|for/gi, '')
+    .replace(/\b\d{4}\b/g, '')
+    .trim()
+    .replace(/\s+/g, ' ');
+};
+
 // Search all APIs in parallel and aggregate results
 export const searchAllAPIs = async (options: SearchOptions): Promise<APIResponse> => {
   try {
     const { query, maxResults = 20 } = options;
-    
-    // Detect query intent (sorting preference) and extract clean search terms using LLM
-    const queryIntent = await detectQueryIntentWithLLM(query);
+
+    // Use fast regex detection for query intent - don't block on LLM
+    // LLM can run in background if needed
+    const queryIntent = {
+      sortBy: detectQueryIntentFast(query),
+      searchTerms: extractSearchTermsFast(query)
+    };
+
     const processedQuery = processSearchQuery(queryIntent.searchTerms);
 
     if (DEBUG) {
+      console.log('⚡ Query processed instantly');
       console.log('Original query:', query);
       console.log('Detected intent:', queryIntent.sortBy);
       console.log('Search terms:', queryIntent.searchTerms);
@@ -107,13 +139,17 @@ export const searchAllAPIs = async (options: SearchOptions): Promise<APIResponse
     const paywalledPapers = enrichedPapers.filter(paper => !paper.pdfUrl || paper.pdfUrl.trim() === '');
 
     // Smart filtering for citation-based queries:
-    // Only filter out 0-citation papers if we have papers WITH citations
+    // Show papers with citations first, but don't exclude papers with 0 citations
     let filteredPapers = papersWithPdf;
     if (queryIntent.sortBy === 'citations') {
+      // Separate papers into two groups
       const papersWithCitations = papersWithPdf.filter(paper => paper.citations > 0);
-      // Only apply filter if we have at least some papers with citations
+      const papersWithoutCitations = papersWithPdf.filter(paper => paper.citations === 0);
+
+      // If we have papers with citations, use those; otherwise use all papers
       if (papersWithCitations.length > 0) {
-        filteredPapers = papersWithCitations;
+        // Combine: papers with citations first, then papers without citations
+        filteredPapers = [...papersWithCitations, ...papersWithoutCitations];
       }
       // Otherwise keep all papers (arXiv papers may have 0 citations but are still relevant)
     }
@@ -139,31 +175,38 @@ export const searchAllAPIs = async (options: SearchOptions): Promise<APIResponse
     const finalPapers = [...freePapers, ...latestPaywalled];
 
     if (DEBUG) {
-      console.log('=== SEARCH DEBUG ===');
+      console.log('=== 📚 PAPER FETCHING DEBUG REPORT ===');
       console.log('Original query:', query);
       console.log('Detected intent:', queryIntent.sortBy);
       console.log('Search terms:', queryIntent.searchTerms);
       console.log('Processed query:', processedQuery);
-      console.log('=== API RESULTS (FREE PDFs ONLY) ===');
-      console.log(`arXiv: ${arxivResults.status === 'fulfilled' ? arxivResults.value.papers.length : 0} papers (100% have PDFs)`);
-      if (arxivResults.status === 'rejected') console.log('arXiv error:', arxivResults.reason);
-      console.log(`Semantic Scholar: ${semanticResults.status === 'fulfilled' ? semanticResults.value.papers.length : 0} papers`);
-      if (semanticResults.status === 'rejected') console.log('Semantic Scholar error:', semanticResults.reason);
-      console.log(`CORE: ${coreResults.status === 'fulfilled' ? coreResults.value.papers.length : 0} papers (open access)`);
-      if (coreResults.status === 'rejected') console.log('CORE error:', coreResults.reason);
+      console.log('');
+      console.log('=== 🔍 API RESULTS (FREE PDFs ONLY) ===');
+      console.log(`✅ arXiv: ${arxivResults.status === 'fulfilled' ? arxivResults.value.papers.length : '❌ FAILED'} papers (100% have PDFs)`);
+      if (arxivResults.status === 'rejected') console.log('   Error:', arxivResults.reason?.message);
+      console.log(`✅ Semantic Scholar: ${semanticResults.status === 'fulfilled' ? semanticResults.value.papers.length : '❌ FAILED'} papers`);
+      if (semanticResults.status === 'rejected') console.log('   Error:', semanticResults.reason?.message);
+      console.log(`✅ CORE: ${coreResults.status === 'fulfilled' ? coreResults.value.papers.length : '❌ FAILED'} papers (open access)`);
+      if (coreResults.status === 'rejected') console.log('   Error:', coreResults.reason?.message);
+      console.log('');
+      console.log('=== 📊 AGGREGATION RESULTS ===');
       console.log(`Total collected: ${allPapers.length} papers`);
       console.log(`After deduplication: ${uniquePapers.length} papers`);
       console.log(`After citation enrichment: ${enrichedPapers.filter(p => p.citations > 0).length} papers have citations`);
       console.log(`Papers with FREE PDFs: ${papersWithPdf.length}`);
       console.log(`Paywalled papers: ${paywalledPapers.length}`);
-      console.log(`After filtering (citations > 0 for 'most cited'): ${queryIntent.sortBy === 'citations' ? filteredPapers.length : 'N/A'}`);
-      console.log(`Returning: ${freePapers.length} free + ${latestPaywalled.length} paywalled = ${finalPapers.length} total papers`);
+      console.log(`After filtering (for ${queryIntent.sortBy}): ${filteredPapers.length}`);
+      console.log(`Final result: ${freePapers.length} free + ${latestPaywalled.length} paywalled = ${finalPapers.length} total`);
+      console.log('');
       if (finalPapers.length === 0) {
-        console.warn('⚠️ NO RESULTS FOUND!');
-        console.warn('Try broader search terms like:');
-        console.warn('  - "machine learning" (instead of "machine learning in healthcare")');
-        console.warn('  - "deep learning"');
-        console.warn('  - "neural networks"');
+        console.error('❌ NO RESULTS FOUND!');
+        console.error('Try these suggestions:');
+        console.error('  1. Use broader search terms like "machine learning" (not "ML in healthcare")');
+        console.error('  2. Try simple keywords: "deep learning", "neural networks", "AI"');
+        console.error('  3. Check that the backend server is running: node server.js');
+        console.error('  4. Check browser console for specific API errors');
+      } else {
+        console.log('✨ Papers returned successfully!');
       }
       console.log('====================================');
     }
@@ -174,9 +217,13 @@ export const searchAllAPIs = async (options: SearchOptions): Promise<APIResponse
       source: 'aggregated'
     };
   } catch (error) {
-    if (DEBUG) {
-      console.error('Aggregator error:', error);
-    }
+    const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+    console.error('❌ Aggregator error:', {
+      message: errorMsg,
+      timestamp: new Date().toISOString(),
+      // Include stack trace in dev mode for debugging
+      ...(DEBUG && { stack: error instanceof Error ? error.stack : undefined })
+    });
     return {
       papers: [],
       total: 0,

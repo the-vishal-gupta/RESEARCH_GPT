@@ -3,7 +3,7 @@ import type { Paper } from '@/types';
 import type { APIResponse, SearchOptions } from './types';
 import { filterPapersByYear } from '@/utils/queryProcessor';
 
-const ARXIV_API_URL = import.meta.env.DEV ? '/api/arxiv' : 'https://export.arxiv.org/api/query';
+const ARXIV_API_URL = '/api/arxiv';
 const DEBUG = import.meta.env.DEV;
 
 // Parse arXiv XML response
@@ -120,9 +120,12 @@ export const searchArxiv = async (options: SearchOptions): Promise<APIResponse> 
       source: 'arxiv'
     };
   } catch (error) {
-    if (DEBUG) {
-      console.error('arXiv API error:', error);
-    }
+    const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+    console.error('❌ arXiv API error:', {
+      message: errorMsg,
+      query,
+      timestamp: new Date().toISOString()
+    });
     return {
       papers: [],
       total: 0,

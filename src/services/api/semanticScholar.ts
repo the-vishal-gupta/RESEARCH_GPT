@@ -2,7 +2,7 @@ import axios from 'axios';
 import type { Paper } from '@/types';
 import type { APIResponse, SearchOptions } from './types';
 
-const SEMANTIC_SCHOLAR_API_URL = import.meta.env.DEV ? '/api/semantic' : 'https://api.semanticscholar.org/graph/v1/paper/search';
+const SEMANTIC_SCHOLAR_API_URL = '/api/semantic';
 
 interface SemanticScholarPaper {
   paperId: string;
@@ -36,8 +36,10 @@ export const searchSemanticScholar = async (options: SearchOptions): Promise<API
     
     const response = await axios.get(`${SEMANTIC_SCHOLAR_API_URL}?${params.toString()}`, {
       headers: {
-        'Accept': 'application/json'
-      }
+        'Accept': 'application/json',
+        'User-Agent': 'ResearchGPT (https://github.com/vishal/research-gpt)'
+      },
+      timeout: 10000
     });
     
     const data = response.data;
@@ -64,14 +66,19 @@ export const searchSemanticScholar = async (options: SearchOptions): Promise<API
     }
     
     console.log('Semantic Scholar API:', { query, requested: fetchCount, found: papers.length, withCitations: papers.filter(p => p.citations > 0).length });
-    
+
     return {
       papers,
       total: data.total || papers.length,
       source: 'semantic-scholar'
     };
   } catch (error) {
-    console.error('Semantic Scholar API error:', error);
+    const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+    console.error('❌ Semantic Scholar API error:', {
+      message: errorMsg,
+      query,
+      timestamp: new Date().toISOString()
+    });
     return {
       papers: [],
       total: 0,

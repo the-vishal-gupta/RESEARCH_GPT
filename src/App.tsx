@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Toaster, toast } from 'sonner';
+import { AuthProvider, useAuth } from '@/context/AuthContext';
 import { Header } from '@/components/Header';
 import { HomePage } from '@/sections/HomePage';
 import { SearchResultsPage } from '@/sections/SearchResultsPage';
@@ -8,13 +9,47 @@ import { LibraryPage } from '@/sections/LibraryPage';
 import { CitationsPage } from '@/sections/CitationsPage';
 import { AlertsPage } from '@/sections/AlertsPage';
 import { SettingsPage } from '@/sections/SettingsPage';
+import { LoginPage } from '@/pages/LoginPage';
+import { SignupPage } from '@/pages/SignupPage';
 import './App.css';
 
 type PageType = 'home' | 'search' | 'labs' | 'library' | 'citations' | 'alerts' | 'settings' | 'profile';
+type AuthPageType = 'login' | 'signup';
 
-function App() {
+function AppContent() {
+  const { currentUser } = useAuth();
   const [currentPage, setCurrentPage] = useState<PageType>('home');
+  const [authPage, setAuthPage] = useState<AuthPageType>('login');
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Show login/signup if not authenticated
+  if (!currentUser) {
+    return (
+      <div>
+        <Toaster
+          position="top-right"
+          richColors
+          closeButton
+          toastOptions={{
+            style: {
+              fontFamily: 'Roboto, Arial, sans-serif',
+            },
+          }}
+        />
+        {authPage === 'login' ? (
+          <LoginPage
+            onLoginSuccess={() => setCurrentPage('home')}
+            onSwitchToSignup={() => setAuthPage('signup')}
+          />
+        ) : (
+          <SignupPage
+            onSignupSuccess={() => setCurrentPage('home')}
+            onSwitchToLogin={() => setAuthPage('login')}
+          />
+        )}
+      </div>
+    );
+  }
 
   const handleSearch = (query: string) => {
     setSearchQuery(query);
@@ -38,8 +73,8 @@ function App() {
         return <HomePage onSearch={handleSearch} onNavigate={handleNavigate} />;
       case 'search':
         return (
-          <SearchResultsPage 
-            query={searchQuery} 
+          <SearchResultsPage
+            query={searchQuery}
             onBack={handleBackToHome}
             onSearch={handleSearch}
           />
@@ -62,9 +97,9 @@ function App() {
 
   return (
     <div className="min-h-screen bg-white">
-      <Toaster 
-        position="top-right" 
-        richColors 
+      <Toaster
+        position="top-right"
+        richColors
         closeButton
         toastOptions={{
           style: {
@@ -77,6 +112,14 @@ function App() {
         {renderPage()}
       </main>
     </div>
+  );
+}
+
+function App() {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
   );
 }
 

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { User, BookOpen, Library, Bell, FlaskConical, Settings, Menu } from 'lucide-react';
+import { User, BookOpen, Library, Bell, FlaskConical, Settings, Menu, LogOut } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -9,6 +9,8 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { useAuth } from '@/context/AuthContext';
+import { toast } from 'sonner';
 
 interface HeaderProps {
   onNavigate: (page: string) => void;
@@ -17,6 +19,12 @@ interface HeaderProps {
 
 export function Header({ onNavigate, currentPage }: HeaderProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { currentUser, logout } = useAuth();
+
+  const handleLogout = () => {
+    logout();
+    toast.success('Logged out successfully');
+  };
 
   const navItems = [
     { id: 'citations', label: 'My Citations', icon: User },
@@ -73,8 +81,8 @@ export function Header({ onNavigate, currentPage }: HeaderProps) {
           <div className="flex items-center gap-2">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button 
-                  variant="ghost" 
+                <Button
+                  variant="ghost"
                   size="icon"
                   className="rounded-full w-9 h-9 bg-[#1a73e8] text-white hover:bg-[#1557b0]"
                 >
@@ -83,8 +91,11 @@ export function Header({ onNavigate, currentPage }: HeaderProps) {
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
                 <div className="px-3 py-2">
-                  <p className="text-sm font-medium text-[#202124]">Researcher User</p>
-                  <p className="text-xs text-[#5f6368]">user@university.edu</p>
+                  <p className="text-sm font-medium text-[#202124]">{currentUser?.name || 'User'}</p>
+                  <p className="text-xs text-[#5f6368]">{currentUser?.email}</p>
+                  {currentUser?.affiliation && (
+                    <p className="text-xs text-[#5f6368]">{currentUser.affiliation}</p>
+                  )}
                 </div>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => onNavigate('profile')}>
@@ -96,7 +107,8 @@ export function Header({ onNavigate, currentPage }: HeaderProps) {
                   My Library
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem className="text-[#d93025]">
+                <DropdownMenuItem onClick={handleLogout} className="text-[#d93025]">
+                  <LogOut className="w-4 h-4 mr-2" />
                   Sign out
                 </DropdownMenuItem>
               </DropdownMenuContent>

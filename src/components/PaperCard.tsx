@@ -1,7 +1,11 @@
 import { useState, memo } from 'react';
-import { Star, Quote, MoreVertical, Bookmark, Download, Share2, FileText, ExternalLink } from 'lucide-react';
+import { Star, Quote, MoreVertical, Bookmark, Download, Share2, FileText, ExternalLink, Copy, Check, Plus } from 'lucide-react';
 import type { Paper, LabsResult } from '@/types';
 import { Button } from '@/components/ui/button';
+import { useAuth } from '@/context/AuthContext';
+import { libraryService } from '@/services/libraryService';
+import { collectionsService, type Collection } from '@/services/collectionsService';
+import { toast } from 'sonner';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -24,9 +28,13 @@ interface PaperCardProps {
 }
 
 export const PaperCard = memo(function PaperCard({ paper, isLabsResult = false, isSaved = false, onSave, onCite }: PaperCardProps) {
+  const { currentUser } = useAuth();
   const [saved, setSaved] = useState(isSaved);
   const [showAbstract, setShowAbstract] = useState(false);
   const [showPdfViewer, setShowPdfViewer] = useState(false);
+  const [citationCopied, setCitationCopied] = useState(false);
+  const [collections, setCollections] = useState<Collection[]>([]);
+  const [showCollectionMenu, setShowCollectionMenu] = useState(false);
 
   const labsResult = isLabsResult ? paper as LabsResult : null;
 
@@ -40,8 +48,24 @@ export const PaperCard = memo(function PaperCard({ paper, isLabsResult = false, 
   const accessType = getAccessType(paper);
 
   const handleSave = () => {
-    setSaved(!saved);
-    onSave?.(paper);
+    if (!currentUser) {
+      toast.error('Please log in to save papers');
+      return;
+    }
+
+    try {
+      if (saved) {
+        libraryService.removePaper(currentUser.id, paper.id);
+        toast.success('Removed from library');
+      } else {
+        libraryService.savePaper(currentUser.id, paper);
+        toast.success('Added to library');
+      }
+      setSaved(!saved);
+      onSave?.(paper);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to save paper');
+    }
   };
 
   const formatCitations = (count: number) => {
@@ -55,6 +79,15 @@ export const PaperCard = memo(function PaperCard({ paper, isLabsResult = false, 
     if (paper.pdfUrl) {
       window.open(paper.pdfUrl, '_blank');
     }
+  };
+
+  // Estimate reading time based on abstract length
+  const getReadingTime = () => {
+    if (!paper.abstract) return null;
+    // Average reading speed: 200 words/minute
+    const words = paper.abstract.split(/\s+/).length;
+    const minutes = Math.max(Math.ceil(words / 200), 5); // Minimum 5 minutes
+    return minutes;
   };
 
   const handleTitleClick = (e: React.MouseEvent) => {
@@ -71,6 +104,27 @@ export const PaperCard = memo(function PaperCard({ paper, isLabsResult = false, 
   const handleViewPdf = () => {
     if (paper.pdfUrl) {
       setShowPdfViewer(true);
+    }
+  };
+
+  const generateBibTeX = (): string => {
+    const citationKey = paper.doi ? paper.doi.split('/')[1] : paper.id;
+    const authorsList = paper.authors.slice(0, 3).join(' and ');
+    return `@article{${citationKey},
+  title={${paper.title}},
+  author={${authorsList}${paper.authors.length > 3 ? ' and others' : ''}},
+  journal={${paper.publication}},
+  year={${paper.year}}
+}`;
+  };
+
+  const handleCopyCitation = async () => {
+    try {
+      await navigator.clipboard.writeText(generateBibTeX());
+      setCitationCopied(true);
+      setTimeout(() => setCitationCopied(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy citation:', err);
     }
   };
 
@@ -154,9 +208,14 @@ export const PaperCard = memo(function PaperCard({ paper, isLabsResult = false, 
               <span className="italic">{paper.publication}</span>
               {paper.year && `, ${paper.year}`}
               {paper.pages && `, pp. ${paper.pages}`}
+              {getReadingTime() && (
+                <span className="ml-2 text-xs bg-[#f0f7ff] text-[#4285f4] px-2 py-0.5 rounded-full inline-block">
+                  ⏱️ ~{getReadingTime()} min read
+                </span>
+              )}
               {paper.doi && (
                 <span className="ml-2">
-                  <a 
+                  <a
                     href={`https://doi.org/${paper.doi}`}
                     target="_blank"
                     rel="noopener noreferrer"
@@ -186,7 +245,7 @@ export const PaperCard = memo(function PaperCard({ paper, isLabsResult = false, 
             )}
 
             {/* Actions */}
-            <div className="flex items-center gap-4 mt-2 flex-wrap">
+            <div className="flex items-center gap-2 mt-2 flex-wrap md:gap-4">
               {/* PDF Actions */}
               {paper.pdfUrl && (
                 <>
@@ -194,28 +253,56 @@ export const PaperCard = memo(function PaperCard({ paper, isLabsResult = false, 
                     variant="default"
                     size="sm"
                     onClick={handleDownloadPdf}
-                    className="text-white bg-[#4285f4] hover:bg-[#1557b0]"
+                    className="text-white bg-[#4285f4] hover:bg-[#1557b0] text-xs md:text-sm"
                   >
-                    <Download className="w-4 h-4 mr-2" />
-                    Download PDF
+                    <Download className="w-4 h-4 mr-1 md:mr-2" />
+                    <span className="hidden sm:inline">Download PDF</span>
+                    <span className="sm:hidden">Download</span>
                   </Button>
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={handleViewPdf}
-                    className="text-[#4285f4] border-[#4285f4] hover:bg-[#f0f7ff]"
+                    className="text-[#4285f4] border-[#4285f4] hover:bg-[#f0f7ff] text-xs md:text-sm"
                   >
-                    <FileText className="w-4 h-4 mr-2" />
-                    View PDF
+                    <FileText className="w-4 h-4 mr-1 md:mr-2" />
+                    <span className="hidden sm:inline">View PDF</span>
+                    <span className="sm:hidden">View</span>
                   </Button>
                 </>
               )}
 
-              {/* Cited By */}
-              {paper.citations > 0 && (
+              {/* Copy Citation Button */}
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleCopyCitation}
+                    className={`text-[#4285f4] border-[#4285f4] text-xs md:text-sm ${citationCopied ? 'bg-green-50' : 'hover:bg-[#f0f7ff]'}`}
+                  >
+                    {citationCopied ? (
+                      <>
+                        <Check className="w-4 h-4 mr-1 md:mr-2 text-green-600" />
+                        <span className="hidden sm:inline">Copied</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-4 h-4 mr-1 md:mr-2" />
+                        <span className="hidden sm:inline">Cite</span>
+                        <span className="sm:hidden">Cite</span>
+                      </>
+                    )}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Copy BibTeX citation</p>
+                </TooltipContent>
+              </Tooltip>
+              {paper.citations > 0 ? (
                 <a
                   href="#"
-                  className="text-sm gs-green hover:underline"
+                  className="text-xs md:text-sm gs-green hover:underline"
                   onClick={(e) => {
                     e.preventDefault();
                     onCite?.(paper);
@@ -223,17 +310,11 @@ export const PaperCard = memo(function PaperCard({ paper, isLabsResult = false, 
                 >
                   Cited by {formatCitations(paper.citations)}
                 </a>
+              ) : (
+                <span className="text-xs md:text-sm text-[#9aa0a6] italic flex items-center gap-1">
+                  📊 <span className="hidden sm:inline">No citations yet</span>
+                </span>
               )}
-
-              {/* Related Articles */}
-              <a href="#" className="text-sm text-[#1a0dab] hover:underline">
-                Related articles
-              </a>
-
-              {/* All Versions */}
-              <a href="#" className="text-sm text-[#1a0dab] hover:underline">
-                All versions
-              </a>
 
               {/* More Actions */}
               <DropdownMenu>
@@ -254,10 +335,6 @@ export const PaperCard = memo(function PaperCard({ paper, isLabsResult = false, 
                   <DropdownMenuItem>
                     <Share2 className="w-4 h-4 mr-2" />
                     Share
-                  </DropdownMenuItem>
-                  <DropdownMenuItem>
-                    <Quote className="w-4 h-4 mr-2" />
-                    Cite
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>

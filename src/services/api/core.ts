@@ -2,7 +2,7 @@ import axios from 'axios';
 import type { Paper } from '@/types';
 import type { APIResponse, SearchOptions } from './types';
 
-const CORE_API_URL = import.meta.env.DEV ? '/api/core' : 'https://api.core.ac.uk/v3/search/works';
+const CORE_API_URL = '/api/core';
 
 // Get API key from environment variable
 const CORE_API_KEY = import.meta.env.VITE_CORE_API_KEY || '';
@@ -47,9 +47,10 @@ export const searchCore = async (options: SearchOptions): Promise<APIResponse> =
     
     const response = await axios.get(`${CORE_API_URL}?${params.toString()}`, {
       headers: {
-        'Authorization': `Bearer ${CORE_API_KEY}`,
+        'User-Agent': 'ResearchGPT (https://github.com/vishal/research-gpt)',
         'Accept': 'application/json'
-      }
+      },
+      timeout: 10000
     });
     
     const data = response.data;
@@ -93,7 +94,12 @@ export const searchCore = async (options: SearchOptions): Promise<APIResponse> =
       source: 'core'
     };
   } catch (error) {
-    console.error('CORE API error:', error);
+    const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+    console.error('❌ CORE API error:', {
+      message: errorMsg,
+      hasApiKey: !!CORE_API_KEY,
+      timestamp: new Date().toISOString()
+    });
     return {
       papers: [],
       total: 0,

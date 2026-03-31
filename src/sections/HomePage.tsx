@@ -36,7 +36,7 @@ export function HomePage({ onSearch, onNavigate }: HomePageProps) {
         </div>
 
         {/* Quick Actions */}
-        <div className="flex flex-wrap justify-center gap-3 mb-12 animate-slide-up stagger-2 relative z-0">
+        <div className="flex flex-wrap justify-center gap-3 mb-12 animate-slide-up stagger-2 relative">
           <Button
             variant="outline"
             onClick={() => onNavigate('labs')}
