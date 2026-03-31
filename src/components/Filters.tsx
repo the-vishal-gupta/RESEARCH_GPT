@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { ChevronDown, ChevronUp, Calendar, FileText, Globe, SortAsc } from 'lucide-react';
+import { ChevronDown, ChevronUp, Calendar, FileText, Globe, SortAsc, TrendingUp } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import type { SearchFilters, SortBy, SearchType } from '@/types';
 
 interface FiltersProps {
@@ -17,6 +18,9 @@ export function Filters({ filters, onChange, resultCount }: FiltersProps) {
     date: true,
     type: true,
     language: false,
+    citations: false,
+    author: false,
+    venue: false,
   });
 
   const toggleSection = (section: string) => {
@@ -36,6 +40,22 @@ export function Filters({ filters, onChange, resultCount }: FiltersProps) {
 
   const handleTypeChange = (type: SearchType) => {
     onChange({ ...filters, type });
+  };
+
+  const handleCitationMinChange = (value: string) => {
+    onChange({ ...filters, citationMin: value ? parseInt(value) : undefined });
+  };
+
+  const handleCitationMaxChange = (value: string) => {
+    onChange({ ...filters, citationMax: value ? parseInt(value) : undefined });
+  };
+
+  const handleAuthorChange = (value: string) => {
+    onChange({ ...filters, author: value || undefined });
+  };
+
+  const handleVenueChange = (value: string) => {
+    onChange({ ...filters, venue: value || undefined });
   };
 
   const dateOptions = [
@@ -109,6 +129,19 @@ export function Filters({ filters, onChange, resultCount }: FiltersProps) {
                 />
                 <Label htmlFor="sort-date" className="text-sm text-[#5f6368] cursor-pointer">
                   Date (newest first)
+                </Label>
+              </div>
+              <div className="flex items-center gap-2">
+                <input
+                  type="radio"
+                  id="sort-citations"
+                  name="sort"
+                  checked={filters.sortBy === 'citations'}
+                  onChange={() => handleSortChange('citations')}
+                  className="w-4 h-4 text-[#4285f4]"
+                />
+                <Label htmlFor="sort-citations" className="text-sm text-[#5f6368] cursor-pointer">
+                  Most cited
                 </Label>
               </div>
             </div>
@@ -214,6 +247,99 @@ export function Filters({ filters, onChange, resultCount }: FiltersProps) {
           )}
         </div>
 
+        {/* Citation Range */}
+        <div className="mb-4">
+          <button
+            onClick={() => toggleSection('citations')}
+            className="flex items-center justify-between w-full px-2 py-2 text-sm font-medium text-[#202124] hover:bg-[#f8f9fa] rounded-md transition-colors"
+          >
+            <span className="flex items-center gap-2">
+              <TrendingUp className="w-4 h-4" />
+              Citation count
+            </span>
+            {expandedSections.citations ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+          </button>
+
+          {expandedSections.citations && (
+            <div className="mt-2 space-y-2 px-2">
+              <div>
+                <Label htmlFor="citation-min" className="text-xs text-[#5f6368]">Min citations</Label>
+                <Input
+                  id="citation-min"
+                  type="number"
+                  placeholder="0"
+                  value={filters.citationMin || ''}
+                  onChange={(e) => handleCitationMinChange(e.target.value)}
+                  className="mt-1 text-sm"
+                />
+              </div>
+              <div>
+                <Label htmlFor="citation-max" className="text-xs text-[#5f6368]">Max citations</Label>
+                <Input
+                  id="citation-max"
+                  type="number"
+                  placeholder="1000"
+                  value={filters.citationMax || ''}
+                  onChange={(e) => handleCitationMaxChange(e.target.value)}
+                  className="mt-1 text-sm"
+                />
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Author Filter */}
+        <div className="mb-4">
+          <button
+            onClick={() => toggleSection('author')}
+            className="flex items-center justify-between w-full px-2 py-2 text-sm font-medium text-[#202124] hover:bg-[#f8f9fa] rounded-md transition-colors"
+          >
+            <span className="flex items-center gap-2">
+              <FileText className="w-4 h-4" />
+              Author
+            </span>
+            {expandedSections.author ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+          </button>
+
+          {expandedSections.author && (
+            <div className="mt-2 px-2">
+              <Input
+                type="text"
+                placeholder="Search authors..."
+                value={filters.author || ''}
+                onChange={(e) => handleAuthorChange(e.target.value)}
+                className="text-sm"
+              />
+            </div>
+          )}
+        </div>
+
+        {/* Venue/Journal Filter */}
+        <div className="mb-4">
+          <button
+            onClick={() => toggleSection('venue')}
+            className="flex items-center justify-between w-full px-2 py-2 text-sm font-medium text-[#202124] hover:bg-[#f8f9fa] rounded-md transition-colors"
+          >
+            <span className="flex items-center gap-2">
+              <Globe className="w-4 h-4" />
+              Venue
+            </span>
+            {expandedSections.venue ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+          </button>
+
+          {expandedSections.venue && (
+            <div className="mt-2 px-2">
+              <Input
+                type="text"
+                placeholder="Journal or conference..."
+                value={filters.venue || ''}
+                onChange={(e) => handleVenueChange(e.target.value)}
+                className="text-sm"
+              />
+            </div>
+          )}
+        </div>
+
         {/* Open Access Filter */}
         <div className="mb-4 px-2 py-3 bg-[#f0f7ff] rounded-lg border border-[#4285f4]/20">
           <div className="flex items-center gap-2">
@@ -243,6 +369,10 @@ export function Filters({ filters, onChange, resultCount }: FiltersProps) {
             type: 'articles',
             language: 'any',
             openAccessOnly: false,
+            citationMin: undefined,
+            citationMax: undefined,
+            author: undefined,
+            venue: undefined,
           })}
         >
           Clear filters

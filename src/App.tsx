@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Toaster, toast } from 'sonner';
+import { ThemeProvider } from 'next-themes';
 import { AuthProvider, useAuth } from '@/context/AuthContext';
 import { Header } from '@/components/Header';
 import { HomePage } from '@/sections/HomePage';
@@ -117,9 +118,11 @@ function AppContent() {
 
 function App() {
   return (
-    <AuthProvider>
-      <AppContent />
-    </AuthProvider>
+    <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
+      <AuthProvider>
+        <AppContent />
+      </AuthProvider>
+    </ThemeProvider>
   );
 }
 

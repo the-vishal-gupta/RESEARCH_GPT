@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { User, BookOpen, Library, Bell, FlaskConical, Settings, Menu, LogOut } from 'lucide-react';
+import { User, BookOpen, Library, Bell, FlaskConical, Settings, Menu, LogOut, Moon, Sun } from 'lucide-react';
+import { useTheme } from 'next-themes';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -20,10 +21,15 @@ interface HeaderProps {
 export function Header({ onNavigate, currentPage }: HeaderProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { currentUser, logout } = useAuth();
+  const { theme, setTheme } = useTheme();
 
   const handleLogout = () => {
     logout();
     toast.success('Logged out successfully');
+  };
+
+  const toggleTheme = () => {
+    setTheme(theme === 'dark' ? 'light' : 'dark');
   };
 
   const navItems = [
@@ -79,6 +85,21 @@ export function Header({ onNavigate, currentPage }: HeaderProps) {
 
           {/* User Menu */}
           <div className="flex items-center gap-2">
+            {/* Theme Toggle */}
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={toggleTheme}
+              className="text-[#5f6368] hover:text-[#202124]"
+              title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+            >
+              {theme === 'dark' ? (
+                <Sun className="w-5 h-5" />
+              ) : (
+                <Moon className="w-5 h-5" />
+              )}
+            </Button>
+
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button

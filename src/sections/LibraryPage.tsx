@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Calendar, Tag, Trash2, Download, FolderOpen, Plus, Search, Star } from 'lucide-react';
+import { Calendar, Tag, Trash2, Download, FolderOpen, Plus, Search, Star, FileDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -19,6 +19,7 @@ import {
 import { toast } from 'sonner';
 import { useAuth } from '@/context/AuthContext';
 import { libraryService, type SavedPaper } from '@/services/libraryService';
+import { exportService, type ExportFormat } from '@/services/exportService';
 
 export function LibraryPage() {
   const { currentUser } = useAuth();
@@ -131,6 +132,54 @@ export function LibraryPage() {
                 {papers.length} saved papers
               </p>
             </div>
+            {papers.length > 0 && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button className="bg-[#4285f4] hover:bg-[#1557b0] text-white">
+                    <FileDown className="w-4 h-4 mr-2" />
+                    Export ({filteredPapers.length})
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem
+                    onClick={() => {
+                      const content = exportService.exportPapers(filteredPapers, 'bibtex');
+                      exportService.downloadFile(content, 'papers.bib');
+                      toast.success('Exported as BibTeX');
+                    }}
+                  >
+                    BibTeX (.bib)
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => {
+                      const content = exportService.exportPapers(filteredPapers, 'csv');
+                      exportService.downloadFile(content, 'papers.csv');
+                      toast.success('Exported as CSV');
+                    }}
+                  >
+                    CSV (.csv)
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => {
+                      const content = exportService.exportPapers(filteredPapers, 'ris');
+                      exportService.downloadFile(content, 'papers.ris');
+                      toast.success('Exported as RIS');
+                    }}
+                  >
+                    RIS (.ris)
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => {
+                      const content = exportService.exportPapers(filteredPapers, 'json');
+                      exportService.downloadFile(content, 'papers.json');
+                      toast.success('Exported as JSON');
+                    }}
+                  >
+                    JSON (.json)
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
           </div>
         </div>
       </div>

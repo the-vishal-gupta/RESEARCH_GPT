@@ -25,7 +25,7 @@ export interface SavedPaper extends Paper {
 
 export type SearchType = 'articles' | 'books' | 'patents' | 'case-law';
 
-export type SortBy = 'relevance' | 'date';
+export type SortBy = 'relevance' | 'date' | 'citations';
 
 export interface SearchFilters {
   sortBy: SortBy;
@@ -33,6 +33,11 @@ export interface SearchFilters {
   type: SearchType;
   language: string;
   openAccessOnly: boolean;
+  citationMin?: number;
+  citationMax?: number;
+  author?: string;
+  venue?: string;
+  category?: string;
 }
 
 export interface ResearchQuestion {
