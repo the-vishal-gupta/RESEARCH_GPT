@@ -3,6 +3,10 @@ import type { APIResponse, SearchOptions } from './types';
 import { searchArxiv } from './arxiv';
 import { searchSemanticScholar } from './semanticScholar';
 import { searchCore } from './core';
+import { searchOpenAlex } from './openalex';
+import { searchDBLP } from './dblp';
+import { searchEuropePMC } from './europepmc';
+import { searchGoogleScholar, checkScholarAvailability } from './googleScholar';
 
 import { processSearchQuery } from '@/utils/queryProcessor';
 import { detectQueryIntentWithLLM } from '@/services/llm/localLLM';
@@ -106,15 +110,33 @@ export const searchAllAPIs = async (options: SearchOptions): Promise<APIResponse
       console.log('Processed query:', processedQuery);
     }
     
-    // Call APIs that provide FREE PDFs: arXiv (100% free), Semantic Scholar (open access), and CORE (open access)
-    const [arxivResults, semanticResults, coreResults] = await Promise.allSettled([
+    // Check if Google Scholar server is available
+    const scholarAvailable = await checkScholarAvailability();
+    
+    // Call ALL FREE APIs in parallel for maximum paper coverage
+    const apiCalls = [
       searchArxiv({ query: processedQuery, maxResults: maxResults }),
       searchSemanticScholar({ query: processedQuery, maxResults: maxResults }),
-      searchCore({ query: processedQuery, maxResults: maxResults })
-    ]);
+      searchCore({ query: processedQuery, maxResults: maxResults }),
+      searchOpenAlex({ query: processedQuery, maxResults: maxResults }),
+      searchDBLP({ query: processedQuery, maxResults: maxResults }),
+      searchEuropePMC({ query: processedQuery, maxResults: maxResults })
+    ];
+    
+    // Add Google Scholar if available
+    if (scholarAvailable) {
+      apiCalls.push(searchGoogleScholar({ query: processedQuery, maxResults: maxResults }));
+      if (DEBUG) console.log('✅ Google Scholar server is available');
+    } else {
+      if (DEBUG) console.log('⚠️ Google Scholar server not running (optional)');
+    }
+    
+    const results = await Promise.allSettled(apiCalls);
     
     // Collect all papers from all sources
     const allPapers: Paper[] = [];
+    
+    const [arxivResults, semanticResults, coreResults, openAlexResults, dblpResults, europePMCResults, scholarResults] = results;
     
     if (arxivResults.status === 'fulfilled') {
       allPapers.push(...arxivResults.value.papers);
@@ -126,6 +148,22 @@ export const searchAllAPIs = async (options: SearchOptions): Promise<APIResponse
     
     if (coreResults.status === 'fulfilled') {
       allPapers.push(...coreResults.value.papers);
+    }
+    
+    if (openAlexResults.status === 'fulfilled') {
+      allPapers.push(...openAlexResults.value.papers);
+    }
+    
+    if (dblpResults.status === 'fulfilled') {
+      allPapers.push(...dblpResults.value.papers);
+    }
+    
+    if (europePMCResults.status === 'fulfilled') {
+      allPapers.push(...europePMCResults.value.papers);
+    }
+    
+    if (scholarResults && scholarResults.status === 'fulfilled') {
+      allPapers.push(...scholarResults.value.papers);
     }
     
     // Deduplicate papers
@@ -181,13 +219,25 @@ export const searchAllAPIs = async (options: SearchOptions): Promise<APIResponse
       console.log('Search terms:', queryIntent.searchTerms);
       console.log('Processed query:', processedQuery);
       console.log('');
-      console.log('=== 🔍 API RESULTS (FREE PDFs ONLY) ===');
-      console.log(`✅ arXiv: ${arxivResults.status === 'fulfilled' ? arxivResults.value.papers.length : '❌ FAILED'} papers (100% have PDFs)`);
+      console.log('=== 🔍 API RESULTS (7 SOURCES) ===');
+      console.log(`✅ arXiv: ${arxivResults.status === 'fulfilled' ? arxivResults.value.papers.length : '❌ FAILED'} papers`);
       if (arxivResults.status === 'rejected') console.log('   Error:', arxivResults.reason?.message);
       console.log(`✅ Semantic Scholar: ${semanticResults.status === 'fulfilled' ? semanticResults.value.papers.length : '❌ FAILED'} papers`);
       if (semanticResults.status === 'rejected') console.log('   Error:', semanticResults.reason?.message);
-      console.log(`✅ CORE: ${coreResults.status === 'fulfilled' ? coreResults.value.papers.length : '❌ FAILED'} papers (open access)`);
+      console.log(`✅ CORE: ${coreResults.status === 'fulfilled' ? coreResults.value.papers.length : '❌ FAILED'} papers`);
       if (coreResults.status === 'rejected') console.log('   Error:', coreResults.reason?.message);
+      console.log(`✅ OpenAlex: ${openAlexResults.status === 'fulfilled' ? openAlexResults.value.papers.length : '❌ FAILED'} papers`);
+      if (openAlexResults.status === 'rejected') console.log('   Error:', openAlexResults.reason?.message);
+      console.log(`✅ DBLP: ${dblpResults.status === 'fulfilled' ? dblpResults.value.papers.length : '❌ FAILED'} papers`);
+      if (dblpResults.status === 'rejected') console.log('   Error:', dblpResults.reason?.message);
+      console.log(`✅ Europe PMC: ${europePMCResults.status === 'fulfilled' ? europePMCResults.value.papers.length : '❌ FAILED'} papers`);
+      if (europePMCResults.status === 'rejected') console.log('   Error:', europePMCResults.reason?.message);
+      if (scholarResults) {
+        console.log(`✅ Google Scholar: ${scholarResults.status === 'fulfilled' ? scholarResults.value.papers.length : '❌ FAILED'} papers`);
+        if (scholarResults.status === 'rejected') console.log('   Error:', scholarResults.reason?.message);
+      } else {
+        console.log('⚠️ Google Scholar: Not available (server not running)');
+      }
       console.log('');
       console.log('=== 📊 AGGREGATION RESULTS ===');
       console.log(`Total collected: ${allPapers.length} papers`);

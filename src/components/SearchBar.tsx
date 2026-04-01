@@ -126,26 +126,6 @@ export function SearchBar({
         </div>
       </form>
 
-      {/* Suggestions Dropdown */}
-      {showSuggestions && (
-        <div className="absolute top-full left-0 right-0 mt-1 bg-white rounded-lg shadow-lg border border-[#dadce0] overflow-hidden z-50 animate-fade-in max-h-80 overflow-y-auto">
-          <div className="p-2 sm:p-3">
-            <p className="text-xs font-medium text-[#5f6368] uppercase tracking-wide mb-2">
-              Try asking Scholar Labs
-            </p>
-            {sampleResearchQuestions.slice(0, 4).map((question, index) => (
-              <button
-                key={index}
-                onClick={() => handleSuggestionClick(question)}
-                className="w-full text-left px-2 sm:px-3 py-2 text-xs sm:text-sm text-[#202124] hover:bg-[#f8f9fa] rounded-md transition-colors flex items-center gap-2"
-              >
-                <Sparkles className="w-3 h-3 sm:w-4 sm:h-4 text-[#4285f4] flex-shrink-0" />
-                <span className="truncate">{question}</span>
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   );
 }

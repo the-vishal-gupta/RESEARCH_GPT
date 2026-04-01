@@ -32,6 +32,16 @@ export const authService = {
     users.push(newUser);
     localStorage.setItem('users', JSON.stringify(users));
 
+    // Initialize user profile for settings
+    const userProfile = {
+      email,
+      name,
+      affiliation,
+      passwordLastChanged: new Date().toISOString(),
+      twoFactorEnabled: false
+    };
+    localStorage.setItem(`user_${newUser.id}`, JSON.stringify(userProfile));
+
     const { password: _, ...userWithoutPassword } = newUser;
     localStorage.setItem('currentUser', JSON.stringify(userWithoutPassword));
 
@@ -44,6 +54,19 @@ export const authService = {
 
     if (!user) throw new Error('User not found');
     if (user.password !== password) throw new Error('Invalid password');
+
+    // Initialize user profile if it doesn't exist
+    const profileKey = `user_${user.id}`;
+    if (!localStorage.getItem(profileKey)) {
+      const userProfile = {
+        email: user.email,
+        name: user.name,
+        affiliation: user.affiliation,
+        passwordLastChanged: user.createdAt,
+        twoFactorEnabled: false
+      };
+      localStorage.setItem(profileKey, JSON.stringify(userProfile));
+    }
 
     const { password: _, ...userWithoutPassword } = user;
     localStorage.setItem('currentUser', JSON.stringify(userWithoutPassword));

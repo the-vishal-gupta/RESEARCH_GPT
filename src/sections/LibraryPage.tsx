@@ -247,13 +247,27 @@ export function LibraryPage() {
               <div className="bg-white rounded-xl border border-[#dadce0] p-12 text-center">
                 <FolderOpen className="w-16 h-16 text-[#dadce0] mx-auto mb-4" />
                 <h3 className="text-lg font-medium text-[#202124] mb-2">
-                  No papers found
+                  {searchQuery
+                    ? 'No papers found'
+                    : papers.length === 0
+                    ? 'Your library is empty'
+                    : 'No papers found'}
                 </h3>
-                <p className="text-sm text-[#5f6368]">
+                <p className="text-sm text-[#5f6368] mb-4">
                   {searchQuery
                     ? 'Try a different search term'
-                    : 'Start saving papers to build your library'}
+                    : papers.length === 0
+                    ? 'Search for papers and click the star icon to save them to your library'
+                    : 'Try a different search term'}
                 </p>
+                {papers.length === 0 && (
+                  <Button
+                    onClick={() => window.location.href = '/'}
+                    className="bg-[#4285f4] hover:bg-[#1557b0] text-white"
+                  >
+                    Go to Search
+                  </Button>
+                )}
               </div>
             ) : (
               <div className="space-y-4">

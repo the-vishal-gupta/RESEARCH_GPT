@@ -10,11 +10,13 @@ import { LibraryPage } from '@/sections/LibraryPage';
 import { CitationsPage } from '@/sections/CitationsPage';
 import { AlertsPage } from '@/sections/AlertsPage';
 import { SettingsPage } from '@/sections/SettingsPage';
+import { ChatbotPage } from '@/sections/ChatbotPage';
 import { LoginPage } from '@/pages/LoginPage';
 import { SignupPage } from '@/pages/SignupPage';
+import { FloatingChatbot } from '@/components/FloatingChatbot';
 import './App.css';
 
-type PageType = 'home' | 'search' | 'labs' | 'library' | 'citations' | 'alerts' | 'settings' | 'profile';
+type PageType = 'home' | 'search' | 'labs' | 'library' | 'citations' | 'alerts' | 'settings' | 'profile' | 'chatbot';
 type AuthPageType = 'login' | 'signup';
 
 function AppContent() {
@@ -91,6 +93,8 @@ function AppContent() {
         return <AlertsPage />;
       case 'settings':
         return <SettingsPage />;
+      case 'chatbot':
+        return <ChatbotPage />;
       default:
         return <HomePage onSearch={handleSearch} onNavigate={handleNavigate} />;
     }
@@ -112,6 +116,7 @@ function AppContent() {
       <main className="animate-fade-in">
         {renderPage()}
       </main>
+      {currentPage !== 'chatbot' && <FloatingChatbot />}
     </div>
   );
 }

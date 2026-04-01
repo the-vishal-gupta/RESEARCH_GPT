@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { User, BookOpen, Library, Bell, FlaskConical, Settings, Menu, LogOut, Moon, Sun } from 'lucide-react';
+import { User, BookOpen, Library, Bell, FlaskConical, Settings, Menu, LogOut, Moon, Sun, MessageCircle } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import {
   DropdownMenu,
@@ -35,6 +35,7 @@ export function Header({ onNavigate, currentPage }: HeaderProps) {
   const navItems = [
     { id: 'citations', label: 'My Citations', icon: User },
     { id: 'library', label: 'My Library', icon: Library },
+    { id: 'chatbot', label: 'AI Assistant', icon: MessageCircle },
     { id: 'alerts', label: 'Alerts', icon: Bell },
     { id: 'labs', label: 'Labs', icon: FlaskConical },
     { id: 'settings', label: 'Settings', icon: Settings },
